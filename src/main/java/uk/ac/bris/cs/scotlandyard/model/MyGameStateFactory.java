@@ -3,20 +3,12 @@ package uk.ac.bris.cs.scotlandyard.model;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 import javax.annotation.Nonnull;
 
-import java.util.Set;
-import java.util.HashSet;
-
-
 import uk.ac.bris.cs.scotlandyard.model.Board.GameState;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Factory;
-
-import java.util.Objects;
-import java.util.Optional;
 
 
 /**
@@ -37,9 +29,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 
 		@Override public GameSetup getSetup() {
-			if (setup == null) {
-				throw new NullPointerException("setup cannot be null");
-			}
 			return this.setup;
 		}
 
@@ -94,9 +83,92 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			return ImmutableSet.of();
 		}
 
+
+
+
+		private static boolean detectiveOccupied(int destination, List<Player> detectives) {
+			if (detectives == null) return false;
+			return detectives.stream().anyMatch(detective -> detective.location() == destination);
+		}
+
+		private static Set<Move.SingleMove> makeSingleMoves(GameSetup setup, List<Player> detectives, Player player, int source){
+
+			// TODO create an empty collection of some sort, say, HashSet, to store all the SingleMove we generate
+			Set<Move.SingleMove> moves = new HashSet<>();
+			for(int destination : setup.graph.adjacentNodes(source)) {
+				// TODO find out if destination is occupied by a detective
+				//  if the location is occupied, don't add to the collection of moves to return
+				// if(ScotlandYard.DETECTIVE_LOCATIONS.contains(destination)) {}
+				if (detectiveOccupied(destination, detectives)) continue;
+
+				for(ScotlandYard.Transport t : setup.graph.edgeValueOrDefault(source, destination, ImmutableSet.of()) ) {
+					// TODO find out if the player has the required tickets
+					//  if it does, construct a SingleMove and add it the collection of moves to return
+					if (player.has(t.requiredTicket())) {
+						moves.add(new Move.SingleMove(player.piece(), source, t.requiredTicket(), destination));
+					}
+				}
+
+				// TODO consider the rules of secret moves here
+				//  add moves to the destination via a secret ticket if there are any left with the player
+				if (player.has(ScotlandYard.Ticket.SECRET)) {
+					moves.add(new Move.SingleMove(player.piece(), source, ScotlandYard.Ticket.SECRET, destination));
+				}
+			}
+
+			// TODO return the collection of moves
+			return moves;
+		}
+
+
+
+
+
+
 		@Nonnull @Override
 		public ImmutableSet<Move> getAvailableMoves() {
-			return null;
+			//return null;
+//			Set<Move.SingleMove> moves = makeSingleMoves(setup, detectives, currentPlayer, currentPlayer.location());
+//			return ImmutableSet.of();
+
+//			Player player = getCurrentPlayer(); // Replace with actual method or logic
+//			if (player == null) return ImmutableSet.of(); // Prevent NullPointerException
+//
+//			Set<Move.SingleMove> moves = makeSingleMoves(setup, detectives, player, player.location());
+			//return ImmutableSet.copyOf(moves);
+
+//			ImmutableSet.Builder<Move> moves = ImmutableSet.builder();
+//
+//			if (remainingMoves.isEmpty()) return ImmutableSet.of(); // No moves available
+//
+//			Piece currentPlayer = remainingMoves.get(0); // First player in the queue (it's their turn)
+//
+//			// Check if the current player is Mr. X
+//			if (currentPlayer.equals(mrX.piece())) {
+//				moves.addAll(generateMoves(mrX));
+//			} else {
+//				// The current player is a detective, find the corresponding detective player
+//				for (Player detective : detectives) {
+//					if (detective.piece().equals(currentPlayer)) {
+//						moves.addAll(generateMoves(detective));
+//						break;
+//					}
+//				}
+//			}
+//
+//			return moves.build();
+
+			//if (isGameOver()) return ImmutableSet.of();
+
+			ImmutableSet<Piece> currentPlayer = getPlayers();; // Step 2: Get the current player
+
+			// Step 3: Generate available moves based on player type
+			if (currentPlayer.piece().isMrX()) {
+				return ImmutableSet.copyOf(makeMrXMoves(setup, detectives, currentPlayer));
+			} else {
+				return ImmutableSet.copyOf(makeSingleMoves(setup, detectives, currentPlayer, currentPlayer.location()));
+			}
+
 		}
 
 		@Override
