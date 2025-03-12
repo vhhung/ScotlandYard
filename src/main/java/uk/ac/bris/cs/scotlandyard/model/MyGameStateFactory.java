@@ -36,9 +36,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		private ImmutableSet<Piece> winner;
 
 
-
-
-
 		@Override public GameSetup getSetup() {
 			if (setup == null) {
 				throw new NullPointerException("setup cannot be null");
@@ -130,15 +127,9 @@ public final class MyGameStateFactory implements Factory<GameState> {
 							final List<Player> detectives) {
 
 
-			//if (setup == null) throw new NullPointerException("GameSetup cannot be null");
-			//if (this.setup == null) throw new NullPointerException("GameSetup cannot be null");
+			// if (remaining == null) throw new NullPointerException("Remaining pieces cannot be null");
+			// if (log == null) throw new NullPointerException("Log entries cannot be null");
 
-
-			if (remaining == null) throw new NullPointerException("Remaining pieces cannot be null"); //XXX
-			if (log == null) throw new NullPointerException("Log entries cannot be null"); //XXX
-			//if (if(setup.moves.isEmpty()) throw new IllegalArgumentException("Moves is empty!"); //) throw new NullPointerException("MrX cannot be null");
-			//if (detectives == null) throw new NullPointerException("Detectives list cannot be null");
-			// this.setup = Objects.requireNonNull(setup, "GameSetup cannot be null");
 
 			this.setup = setup;
 			this.remaining = remaining;
@@ -156,9 +147,9 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			ImmutableList<Player> detectives) {
 		// TODO
 		// throw new RuntimeException("Implement me!");
-		// if (setup == null) throw new NullPointerException("GameSetup cannot be null"); // not about the test
+
 		if (mrX == null) throw new NullPointerException("MrX cannot be null"); // Correct!!
-		if (detectives == null) throw new NullPointerException("Detectives list cannot be null");  // not about the test
+		//if (detectives == null) throw new NullPointerException("Detectives list cannot be null");  // not about the test
 		if (setup.moves.isEmpty()) throw new IllegalArgumentException("Moves is empty!"); // Correct!!
 		if (setup.graph.nodes().isEmpty()) // Correct!!
 			throw new IllegalArgumentException("Graph cannot be empty");
@@ -170,7 +161,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			}
 		}
 
-
+		// NoSecret
 		for (Player detective : detectives) {
 			if (detective.tickets().getOrDefault(ScotlandYard.Ticket.SECRET, 0) > 0) {
 				throw new IllegalArgumentException("No secret tickets for detectives.");
