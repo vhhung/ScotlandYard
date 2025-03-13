@@ -16,7 +16,8 @@ import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Ticket;
 public final class Player {
 	private final Piece piece;
 	private final ImmutableMap<Ticket, Integer> tickets;
-	private final int location;
+	private final int
+			location;
 
 	public Player(@Nonnull Piece piece,
 	              @Nonnull ImmutableMap<Ticket, Integer> tickets,
