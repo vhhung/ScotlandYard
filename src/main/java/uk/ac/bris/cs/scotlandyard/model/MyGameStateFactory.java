@@ -175,25 +175,29 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		 */
 		private Set<Move.DoubleMove> makeDoubleMoves(GameSetup setup, List<Player> detectives, Player player, int source){
 			Set<Move.DoubleMove> moves = new HashSet<>();
-			// Check if this is no Mr X
+			// Check if this is not Mr X
 			if(!player.isMrX()){
-			  throw new IllegalArgumentException("Only MrX can have Double tickets!");
-			}
-
-			// Check if whether player has Double Ticket or not and whether player has enough tickets to use Double move or not
-			//Also check if player is in the last move
-			if(player.tickets().getOrDefault(ScotlandYard.Ticket.DOUBLE, 0) < 1 || player.tickets().size() < 3 || this.log.size() + 2 > setup.moves.size()){
 			  return moves;
 			}
 
-			//Initiate the all possible first Move for player
-			Set<Move.SingleMove> firstMoves = (Set<Move.SingleMove>) makeSingleMoves(setup, detectives, player, source);
+			// Check if whether player has Double Ticket or not
+			//Also check if player have enough moves to use Double move
+			if(player.tickets().getOrDefault(ScotlandYard.Ticket.DOUBLE, 0) < 1 || this.log.size() + 2 > setup.moves.size()){
+			  return moves;
+			}
 
-			//Loop for each first Move location find all possible location second move
+			//Find all possible first moves for player
+			Set<Move.SingleMove> firstMoves = makeSingleMoves(setup, detectives, player, source);
+
+			//Loop for each first Move location find all possible location for the second move
 			for(Move.SingleMove firstMove : firstMoves){
-			  Set<Move.SingleMove> secondMoves = (Set<Move.SingleMove>) makeSingleMoves(setup, detectives, player, firstMove.destination);
+			  Set<Move.SingleMove> secondMoves = makeSingleMoves(setup, detectives, player, firstMove.destination);
 			  for(Move.SingleMove secondMove : secondMoves){
-				  moves.add(new Move.DoubleMove(player.piece(), player.location(), firstMove.ticket, firstMove.destination, secondMove.ticket, secondMove.destination));
+				  if(firstMove.ticket == secondMove.ticket || player.hasAtLeast(firstMove.ticket, 2)){
+					  moves.add(new Move.DoubleMove(player.piece(), player.location(), firstMove.ticket, firstMove.destination, secondMove.ticket, secondMove.destination));
+				  } else if(firstMove.ticket != secondMove.ticket){
+					  moves.add(new Move.DoubleMove(player.piece(), player.location(), firstMove.ticket, firstMove.destination, secondMove.ticket, secondMove.destination));
+				  }
 			  }
 			}
 			return moves;
@@ -208,11 +212,12 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			if (!getWinner().isEmpty()) return ImmutableSet.copyOf(possibleMoves);
 			Set<Move.SingleMove> singleMoves = new HashSet<>();
 			Set<Move.DoubleMove> doubleMoves = new HashSet<>();
-			for(Player player : detectives) {
+			for (Player player : detectives) {
 				if (remaining.contains(player.piece())) {
 					possibleMoves.addAll(makeSingleMoves(setup, detectives, player, player.location()));
 				}
 			}
+
 			if(remaining.contains(mrX.piece())){
 				possibleMoves.addAll(makeSingleMoves(setup, detectives, mrX, mrX.location()));
 				possibleMoves.addAll(makeDoubleMoves(setup, detectives, mrX, mrX.location()));
