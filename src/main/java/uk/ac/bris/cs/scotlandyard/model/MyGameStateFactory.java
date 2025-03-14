@@ -193,7 +193,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			for(Move.SingleMove firstMove : firstMoves){
 			  Set<Move.SingleMove> secondMoves = makeSingleMoves(setup, detectives, player, firstMove.destination);
 			  for(Move.SingleMove secondMove : secondMoves){
-				  if(firstMove.ticket == secondMove.ticket || player.hasAtLeast(firstMove.ticket, 2)){
+				  if(firstMove.ticket == secondMove.ticket && player.hasAtLeast(firstMove.ticket, 2)){
 					  moves.add(new Move.DoubleMove(player.piece(), player.location(), firstMove.ticket, firstMove.destination, secondMove.ticket, secondMove.destination));
 				  } else if(firstMove.ticket != secondMove.ticket){
 					  moves.add(new Move.DoubleMove(player.piece(), player.location(), firstMove.ticket, firstMove.destination, secondMove.ticket, secondMove.destination));
