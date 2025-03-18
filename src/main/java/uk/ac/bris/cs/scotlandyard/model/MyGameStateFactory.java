@@ -289,8 +289,8 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		 * {@link #getAvailableMoves()}
 		 */
 		@Override @Nonnull public GameState advance(Move move){
-			if(!getAvailableMoves().contains(move)) throw new IllegalArgumentException("Illegal move: "+move);
-			List<Piece> updateRemaining = new ArrayList<>(remaining);
+			if(!moves.contains(move)) throw new IllegalArgumentException("Illegal move: "+move);
+			List<Piece> updateRemaining = new ArrayList<>();
 			List<LogEntry> updateLog = new ArrayList<>(log);
 			List<Player> updateDetectives = new ArrayList<>();
 			move.accept(new Move.Visitor<Void>(){
@@ -306,7 +306,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 							}
 							updateDetectives.add(detective);
 						}
-						updateRemaining.remove(singleMove.commencedBy());
 						mrX = mrX.give(singleMove.ticket);
 					}
 					return null;
@@ -315,14 +314,13 @@ public final class MyGameStateFactory implements Factory<GameState> {
 				@Override
 				public Void visit(Move.DoubleMove doubleMove) {
 					mrX = mrX.use(doubleMove.tickets()).at(doubleMove.destination2);
-					updateLog.add(setup.moves.get(log.size()) ? LogEntry.reveal(doubleMove.ticket1, doubleMove.destination1) : LogEntry.hidden(doubleMove.ticket1));
+					updateLog.add(setup.moves.get(updateLog.size()) ? LogEntry.reveal(doubleMove.ticket1, doubleMove.destination1) : LogEntry.hidden(doubleMove.ticket1));
 					updateLog.add(setup.moves.get(updateLog.size()) ? LogEntry.reveal(doubleMove.ticket2, doubleMove.destination2) : LogEntry.hidden(doubleMove.ticket2));
-					updateRemaining.remove(doubleMove.commencedBy());
 					return null;
 				}
 			});
 
-
+			// If no detective update, then just add all the current detectives to updateDetectives
 			if (updateDetectives.isEmpty()) {
 				updateDetectives.addAll(detectives);
 			}
@@ -331,24 +329,23 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 			// Update the remaining
 			if (movedPiece.isMrX()) {
-				// If Mr X moved, then it's turn of the detectives.
-				updateRemaining.clear();
-				updateRemaining.addAll(updateDetectives.stream()
-                                        .map(Player::piece)
-                                        .toList());
+				updateRemaining = detectives.stream()
+											.filter(detective -> !makeSingleMoves(setup, updateDetectives, detective, detective.location()).isEmpty())
+											.map(Player::piece)
+											.toList();
 			} else {
 				// If a detective moved, remove that detective to ensure he is not in the remaining set.
-				updateRemaining.remove(movedPiece);
+				updateRemaining = new ArrayList<>(remaining.stream()
+										   .filter(piece -> !piece.equals(movedPiece))
+										   .toList());
+
 				// If after removing and no piece remains, then it's MrX's turn.
 				if (updateRemaining.isEmpty()) {
 					updateRemaining.add(mrX.piece());
 				}
 			}
 
-
 			return new MyGameState(setup, ImmutableSet.copyOf(updateRemaining),ImmutableList.copyOf(updateLog), mrX, updateDetectives);
-
 		}
-
 	}
 }
