@@ -4,6 +4,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import javax.annotation.Nonnull;
 import java.util.*;
+import java.util.stream.Collectors;
+
 import uk.ac.bris.cs.scotlandyard.model.Board.GameState;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYard.Factory;
 /**
@@ -71,6 +73,8 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			this.log = log;
 			this.mrX = mrX;
 			this.detectives = detectives;
+			this.moves = getAvailableMoves();
+			this.winner = getWinner();
 		}
 
 		/**
@@ -130,11 +134,53 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		}
 
 		/**
+		 * Helper function to check whether all detectives have run out of move
+		 */
+		boolean movesOfDetectives(List<Player> detectives){
+			return detectives.stream()
+					         .allMatch(detective -> makeSingleMoves(setup, detectives, detective, detective.location()).isEmpty());
+		}
+
+		/**
 		* @return the winner of this game; empty if the game has no winners yet
 		* This is mutually exclusive with {@link #getAvailableMoves()}
 		*/
 		@Override @Nonnull public ImmutableSet<Piece> getWinner(){
-			return ImmutableSet.of();
+
+			List<Piece> detectivePiecesList = detectives.stream()
+														.map(Player::piece)
+														.collect(Collectors.toList());
+
+            for (Player detective : detectives) {
+                detectivePiecesList.add(detective.piece());
+            }
+
+			// If a detective is on the same location with Mr X, then Mr X loses
+            for (Player detective : detectives) {
+                if (detective.location() == this.mrX.location()) {
+                    return ImmutableSet.copyOf(detectivePiecesList);
+                }
+            }
+
+			// If no detectives have move left to go then Mr X win
+			if (movesOfDetectives(detectives)) return ImmutableSet.of(Piece.MrX.MRX);
+
+            // if it's turn for mrX to move but there are no available moves then game over, Mr X loses
+            if ((makeSingleMoves(setup, detectives, mrX, mrX.location()).isEmpty()
+                    && makeDoubleMoves(setup, detectives, mrX, mrX.location()).isEmpty()
+                    && remaining.contains(mrX.piece()))) {
+                return ImmutableSet.copyOf(detectivePiecesList);
+            }
+
+
+            // mrx manage to fill up the log and no detectives could catch him, then Mr X win
+            if (setup.moves.size() == getMrXTravelLog().size()
+                    && remaining.contains(mrX.piece())) {
+                return ImmutableSet.of(Piece.MrX.MRX);
+            }
+
+			// If no one win then return Immutable Set of empty
+            return ImmutableSet.of();
 		}
 
 		/**
@@ -147,7 +193,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		  for(int destination : setup.graph.adjacentNodes(source)) {
 			// TODO find out if destination is occupied by a detective
 			//  if the location is occupied, don't add to the collection of moves to return
-			// Using Stream to check if the location if occupied
 			if (detectives.stream().anyMatch(detective -> detective.location() == destination)) continue;
 
 			for(ScotlandYard.Transport t : setup.graph.edgeValueOrDefault(source, destination, ImmutableSet.of()) ) {
@@ -182,9 +227,10 @@ public final class MyGameStateFactory implements Factory<GameState> {
 
 			// Check if whether player has Double Ticket or not
 			//Also check if player have enough moves to use Double move
-			if(player.tickets().getOrDefault(ScotlandYard.Ticket.DOUBLE, 0) < 1 || this.log.size() + 2 > setup.moves.size()){
+			if(!player.hasAtLeast(ScotlandYard.Ticket.DOUBLE, 1) || this.log.size() + 2 > setup.moves.size()){
 			  return moves;
 			}
+
 
 			//Find all possible first moves for player
 			Set<Move.SingleMove> firstMoves = makeSingleMoves(setup, detectives, player, source);
@@ -212,16 +258,24 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			if (!getWinner().isEmpty()) return ImmutableSet.copyOf(possibleMoves);
 			Set<Move.SingleMove> singleMoves = new HashSet<>();
 			Set<Move.DoubleMove> doubleMoves = new HashSet<>();
-			for (Player player : detectives) {
-				if (remaining.contains(player.piece())) {
-					possibleMoves.addAll(makeSingleMoves(setup, detectives, player, player.location()));
-				}
-			}
 
 			if(remaining.contains(mrX.piece())){
-				possibleMoves.addAll(makeSingleMoves(setup, detectives, mrX, mrX.location()));
-				possibleMoves.addAll(makeDoubleMoves(setup, detectives, mrX, mrX.location()));
+				singleMoves.addAll(makeSingleMoves(setup, detectives, mrX, mrX.location()));
+				doubleMoves.addAll(makeDoubleMoves(setup, detectives, mrX, mrX.location()));
+			} else {
+				for (Player player : detectives) {
+					if (remaining.contains(player.piece())) {
+						singleMoves.addAll(makeSingleMoves(setup, detectives, player, player.location()));
+					}
+				}
 			}
+			if(!singleMoves.isEmpty()){
+				possibleMoves.addAll(singleMoves);
+			}
+			if(!doubleMoves.isEmpty()){
+				possibleMoves.addAll(doubleMoves);
+			}
+			// possibleMoves.addAll(doubleMoves);
 			return ImmutableSet.copyOf(possibleMoves);
 		}
 
@@ -235,7 +289,66 @@ public final class MyGameStateFactory implements Factory<GameState> {
 		 * {@link #getAvailableMoves()}
 		 */
 		@Override @Nonnull public GameState advance(Move move){
-			throw new RuntimeException("Implement me!");
+			if(!getAvailableMoves().contains(move)) throw new IllegalArgumentException("Illegal move: "+move);
+			List<Piece> updateRemaining = new ArrayList<>(remaining);
+			List<LogEntry> updateLog = new ArrayList<>(log);
+			List<Player> updateDetectives = new ArrayList<>();
+			move.accept(new Move.Visitor<Void>(){
+				@Override
+				public Void visit(Move.SingleMove singleMove) {
+					if(singleMove.commencedBy().isMrX()){
+						mrX = mrX.use(singleMove.ticket).at(singleMove.destination);
+						updateLog.add(setup.moves.get(log.size()) ? LogEntry.reveal(singleMove.ticket, singleMove.destination) : LogEntry.hidden(singleMove.ticket));
+					} else {
+						for (Player detective : detectives) {
+							if (detective.piece().equals(singleMove.commencedBy())) {
+								detective = detective.use(singleMove.ticket).at(singleMove.destination);;
+							}
+							updateDetectives.add(detective);
+						}
+						updateRemaining.remove(singleMove.commencedBy());
+						mrX = mrX.give(singleMove.ticket);
+					}
+					return null;
+				}
+
+				@Override
+				public Void visit(Move.DoubleMove doubleMove) {
+					mrX = mrX.use(doubleMove.tickets()).at(doubleMove.destination2);
+					updateLog.add(setup.moves.get(log.size()) ? LogEntry.reveal(doubleMove.ticket1, doubleMove.destination1) : LogEntry.hidden(doubleMove.ticket1));
+					updateLog.add(setup.moves.get(updateLog.size()) ? LogEntry.reveal(doubleMove.ticket2, doubleMove.destination2) : LogEntry.hidden(doubleMove.ticket2));
+					updateRemaining.remove(doubleMove.commencedBy());
+					return null;
+				}
+			});
+
+
+			if (updateDetectives.isEmpty()) {
+				updateDetectives.addAll(detectives);
+			}
+
+			Piece movedPiece = move.commencedBy();
+
+			// Update the remaining
+			if (movedPiece.isMrX()) {
+				// If Mr X moved, then it's turn of the detectives.
+				updateRemaining.clear();
+				updateRemaining.addAll(updateDetectives.stream()
+                                        .map(Player::piece)
+                                        .toList());
+			} else {
+				// If a detective moved, remove that detective to ensure he is not in the remaining set.
+				updateRemaining.remove(movedPiece);
+				// If after removing and no piece remains, then it's MrX's turn.
+				if (updateRemaining.isEmpty()) {
+					updateRemaining.add(mrX.piece());
+				}
+			}
+
+
+			return new MyGameState(setup, ImmutableSet.copyOf(updateRemaining),ImmutableList.copyOf(updateLog), mrX, updateDetectives);
+
 		}
+
 	}
 }
