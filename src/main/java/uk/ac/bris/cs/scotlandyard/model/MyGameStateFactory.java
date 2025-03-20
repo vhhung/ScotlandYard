@@ -311,7 +311,7 @@ public final class MyGameStateFactory implements Factory<GameState> {
 												   : LogEntry.hidden(singleMove.ticket))
 										   .build();
 
-						// After Mr X did the move then it's detectives turn so add all detectives to the remaining
+						// After Mr X did the move then it's detectives turn so all detectives' pieces need to be added to the remaining
 						remaining = ImmutableSet.copyOf(detectives.stream()
 																  .filter(detective -> !makeSingleMoves(setup, detectives, detective, detective.location()).isEmpty())
 																  .map(Player::piece)
