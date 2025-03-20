@@ -39,17 +39,13 @@ public final class MyGameStateFactory implements Factory<GameState> {
 			//Check if the moves is empty
 			if(setup.moves.isEmpty()) throw new IllegalArgumentException("Moves is empty!");
 
-			//Check if the graph is empty
-			if(setup.graph.nodes().isEmpty()) throw new IllegalArgumentException("Nodes is empty!");
-
-
 			//Check if the color of mrX is not black
 			if(!mrX.piece().webColour().equals("#000")) throw new IllegalArgumentException("MrX is not a black piece!");
 
 			//Check if the detectives is empty
 			if(detectives.isEmpty()) throw new IllegalArgumentException("Detectives is empty!");
 
-			// Check is there any duplicated location
+			// Check is there any duplicated location of detectives
 			// Check is there any detective having Double ticket or Secret ticket
 			// Check if there is mrX in detectives list
 			List<Integer> locations = new ArrayList<>();
@@ -363,7 +359,6 @@ public final class MyGameStateFactory implements Factory<GameState> {
 					return new MyGameState(setup, remaining, log, mrX, detectives);
 				}
 			});
-
 		}
 	}
 }
