@@ -1,50 +1,31 @@
-The Scotland Yard Project
-=========================
-<!--
-## Fixes and workarounds for Apple Silicon: [staying in Apple Land](https://github.com/UoB-OOP/COMS10017-2024/blob/main/summative/applefix.md) and [using Ubuntu on Virtual Machine](https://github.com/UoB-OOP/COMS10017-2024/blob/main/guides/applesiliconvmguide.md)
--->
-Welcome to the Scotland Yard project!
-The project will help you to develop your programming skills, in particular to gain further
-competence, confidence and agility in the way you write object-oriented programs. The project will
-conclude in an unmarked competition event.
+# Scotlandyard Game
 
-During the next few weeks, you will develop components for a Java application that allows you to
-simulate and play a digital version of the popular board game "Scotland Yard".
+## Overview
 
-The project is to be completed in pair programming teams of two as registered during the start of
-the term. Make sure you do not exchange code between teams and ensure your repositories are private
-to your two team members at all times. Manage your time well; let us know early if you struggle or
-have issues in your team. Meet regularly in your team and stay in contact.
+The game of Scotland Yard is a classic board game in which players take on the role of detectives, trying to solve a crime by catching the Mrx who is another player. The game is played on a map of London, with each player having their own detective piece. The game is turn-based, with each player taking a turn to move their detective around the map. 
 
-The project consists of two parts:
+This game was implemented using Java 17 and Maven. The game's features were implemented using Graph Algorithms, the Visitor pattern, the Observer pattern, and many features of Java such as Generics, anonymous classes, etc.
 
-* The implementation of a core game component `cw-model`
-* The implementation of an open-ended AI extension `cw-ai`
+## Implementation
 
-You will need to produce a 3-page PDF report accompanying your work. The assessment will be a VIVA
-at the end of term where you present your work and where we will discuss how you have understood
-and/or used the Java concepts and features described in lectures.
+The implementation of this program was divided into 5 important phases: (1) develop the constructor of MyGameState class and develop the necessary getters, (2) figure out how players could move through the map and nodes (3) develop the advance method to update the state, (4) implement the getWinner method (5) apply the observer pattern.
 
-Before you start on this project, make sure you have completed all previous lab worksheets/tasks.
-Use the labs, and Microsoft Teams to ask questions (do not spend hours debugging on your own!). Do
-not post potentially credit-bearing code snippets on Teams. It is essential that you make the most
-of lab sessions where you can discuss your progress with our lab team and get help on the spot. In
-case both lab sessions and Teams have not provided an answer, see a lecturer after one of the
-lectures or during labs. The recommended time spent for this coursework is 30h in pair programming
-teams. Manage your workload well, meet regularly in your team and avoid leaving the implementation
-late.
+## MyGameStateFactory Class
 
-See the task description page for each part to get started:
+This class is a factory that implements the Factory<GameSatate> interface. This means that it has a factory method of some sort (build in this case) which returns a new instance of GameState. The GameState extends board and thus, will have to implement 8 methods; 7 inherited from board plus the advance method that requires. After that, we had to think about the state data MyGameState needs to hold and define some first attributes. This part was done easily with the help of the getters. Next, was writing a constructor for MyGameState. this constructor will be called by the build method of the outer class MyGameSateFactory, and this gives us a hint that it should make use of at least this information: 1. The game setup    2.the player mrX    3.the ImmutableList<player> detectives. In addition, the remaining players were provided, and finally the current log.
 
-* **IMPORTANT - you will need to use JAVA 17 for all operating systems** 
+## Get Available Moves
 
-1. [cw-model](cw-model.md) - part 1 of the coursework, [JavaDocs](https://seis.bristol.ac.uk/~sh1670/SY/apidocs2022/index.html) 
-2. [cw-ai](cw-ai.md) - part 2 of the coursework, [JavaDocs](https://seis.bristol.ac.uk/~sh1670/SY/apidocs2022/index.html) 
+For the base implementation of the moves that the players could make, we first had to create two functions that would return whether the player could make a single or doubles moves. Then these two functions would be called in the getAvailableMoves method to return a list of all the possible moves that each user can make.
 
+## Visitor Pattern & Advance method 
 
-You may also want to read these:
+The purpose of this method was to update the game state given a move. For this, we apply the Visitor Pattern through an anonymous class to take advantage of the variables in the scope of myGameState class. Using the visitor pattern, we implement the logic to move each player on the map.
 
-* [Assessment & Submission](assessment.md) - information on how the project will be assessed and what
-  you should submit.
-* [Maven](maven.md) - basic introduction into Maven (optional and not required to solve the
-  coursework task).
+## Determine who is the winner 
+
+The rules book provided by the university was helpful to implement the checks needed in getWinner method, some of the checks that we did in getWinner were: if mrX is in the same location as a detective (mrX loses), if it is mrX's turn to move and there are no available moves (mrX loses), and if mrX managed to fill in the log without a detective catching him (mrX wins). Two helper functions were used for this task; a function that checks if a detective has moves left or not and a function to get the corresponding player from its piece. One important thing is when no winner is determined yet; return an empty set. This line of code was implemented in getAvailableMoves
+
+## Observer pattern
+
+This is a factory again, producing via build (…) a game model which should hold a GameState and observer list and can be observed by the observers with regards to some events. In this task there are 5 different methods that should be completed, their aim is to return the current game board, registers an observer to the model, unregister an observer to the model, and the hardest method of them which is aimed to notify all the observer with move passed. In this method, getWinner was also used besides the advance method to inform the observers about the new state and events such as MOVE_MADE and GAME_OVER. 
